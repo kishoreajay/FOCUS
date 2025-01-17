@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<!-- saved from url=(0038)file:///C:/Users/HP/Desktop/timer.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persistent Study Timer with Timetable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #007bff;
+            color: white;
+        }
+        .header button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .date-time-container {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .today-date {
+            font-size: 1.8em;
+            color: #007bff;
+        }
+        .timer-container {
+            margin-top: 20px;
+            padding: 30px;
+            border: 2px solid #ddd;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .timer-display {
+            font-size: 4em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button.start-stop {
+            background-color: #4caf50;
+            color: white;
+        }
+        button.reset {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .task-container, .timetable-container {
+            margin-top: 20px;
+            width: 80%;
+        }
+        .task-container input {
+            width: calc(100% - 100px);
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .task-container .add-task {
+            width: 100px;
+            margin-left: 10px;
+            background-color: #007bff;
+            color: white;
+        }
+        .task-list {
+            margin-top: 20px;
+        }
+        .task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+        .timetable {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .timetable h3 {
+            text-align: center;
+            color: #007bff;
+        }
+        .timetable-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .timetable-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <div id="total-time">Total Study Time: 00:00:00</div>
+        </div>
+        <button onclick="resetTotalTime()">Reset Total Time</button>
+    </div>
+    <div class="date-time-container">
+        <div id="today-date" class="today-date">Today's Date: Friday 17 January 2025</div>
+        <div id="date-time">10:44:01</div>
+    </div>
+    <div class="timer-container">
+        <div class="timer-display" id="central-timer">00:00:00</div>
+        <div class="button-group">
+            <button class="start-stop" onclick="toggleTimer()">Start</button>
+            <button class="reset" onclick="resetTimer()">Reset</button>
+        </div>
+    </div>
+    <div class="task-container">
+        <input type="text" id="new-task" placeholder="Enter new task">
+        <button class="add-task" onclick="addTask()">Add Task</button>
+        <div class="task-list" id="task-list"></div>
+    </div>
+    <div class="timetable-container">
+        <div class="timetable">
+            <h3>Study Timetable</h3>
+            <ul class="timetable-list" id="timetable-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        let centralTime = parseInt(localStorage.getItem('centralTime')) || 0;
+        let totalTime = parseInt(localStorage.getItem('totalTime')) || 0;
+        let centralTimerRunning = false;
+        let centralInterval;
+
+        document.getElementById("central-timer").textContent = formatTime(centralTime);
+        document.getElementById("total-time").textContent = `Total Study Time: ${formatTime(totalTime)}`;
+        updateDateTime();
+        updateTodayDate();
+        loadTimetable();
+        loadTasks();
+
+        function toggleTimer() {
+            const centralTimerDisplay = document.getElementById("central-timer");
+            const button = document.querySelector(".start-stop");
+            if (!centralTimerRunning) {
+                button.textContent = "Stop";
+                centralTimerRunning = true;
+
+                centralInterval = setInterval(() => {
+                    centralTime++;
+                    totalTime++;
+                    centralTimerDisplay.textContent = formatTime(centralTime);
+                    document.getElementById("total-time").textContent = `Total Study Time: ${formatTime(totalTime)}`;
+                    localStorage.setItem('centralTime', centralTime);
+                    localStorage.setItem('totalTime', totalTime);
+                    updateTimetable();
+                }, 1000);
+            } else {
+                button.textContent = "Start";
+                centralTimerRunning = false;
+                clearInterval(centralInterval);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(centralInterval);
+            centralTime = 0;
+            centralTimerRunning = false;
+            document.getElementById("central-timer").textContent = "00:00:00";
+            document.querySelector(".start-stop").textContent = "Start";
+            localStorage.setItem('centralTime', centralTime);
+        }
+
+        function resetTotalTime() {
+            totalTime = 0;
+            document.getElementById("total-time").textContent = "Total Study Time: 00:00:00";
+            localStorage.setItem('totalTime', totalTime);
+            localStorage.removeItem('timetable');
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateTime = now.toLocaleString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            });
+            document.getElementById("date-time").textContent = dateTime;
+            setTimeout(updateDateTime, 1000);
+        }
+
+        function updateTodayDate() {
+            const now = new Date();
+            const date = now.toLocaleString("en-GB", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            });
+            document.getElementById("today-date").textContent = `Today's Date: ${date}`;
+        }
+
+        function updateTimetable() {
+            const today = new Date().toISOString().split("T")[0];
+            const timetable = JSON.parse(localStorage.getItem("timetable")) || {};
+            timetable[today] = (timetable[today] || 0) + 1;
+            localStorage.setItem("timetable", JSON.stringify(timetable));
+            loadTimetable();
+        }
+
+        function loadTimetable() {
+            const timetable = JSON.parse(localStorage.getItem("timetable")) || {};
+            const timetableList = document.getElementById("timetable-list");
+            timetableList.innerHTML = "";
+            for (const [date, seconds] of Object.entries(timetable)) {
+                const li = document.createElement("li");
+                li.textContent = `${date}: ${formatTime(seconds)}`;
+                timetableList.appendChild(li);
+            }
+        }
+
+        function formatTime(seconds) {
+            const hrs = String(Math.floor(seconds / 3600)).padStart(2, "0");
+            const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+            const secs = String(seconds % 60).padStart(2, "0");
+            return `${hrs}:${mins}:${secs}`;
+        }
+    </script>
+
+
+</body></html>
